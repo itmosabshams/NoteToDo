@@ -11,6 +11,7 @@ import android.os.Build
 import android.os.Bundle
 import android.os.PowerManager
 import android.view.WindowManager
+import android.widget.Toast
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.compose.runtime.*
@@ -31,6 +32,8 @@ class RingingActivity : ComponentActivity() {
         // دریافت اطلاعات تسک از Intent
         taskTitle = intent.getStringExtra("task_title") ?: "تسک جدید"
         taskId = intent.getIntExtra("task_id", -1)
+
+        android.util.Log.d("RingingActivity", "آلارم باز شد - Task ID: $taskId, Title: $taskTitle")
 
         // تنظیمات صفحه برای نمایش روی قفل صفحه
         setupWindowFlags()
@@ -75,10 +78,12 @@ class RingingActivity : ComponentActivity() {
             PowerManager.FULL_WAKE_LOCK or PowerManager.ACQUIRE_CAUSES_WAKEUP,
             "NoteToDo:AlarmWakeLock"
         )
-        wakeLock?.acquire(10_000L) // 10 ثانیه
+        wakeLock?.acquire(30_000L) // 30 ثانیه
     }
 
     private fun dismissAlarm() {
+        android.util.Log.d("RingingActivity", "دکمه خاموش زده شد - Task ID: $taskId")
+
         // 1. کنسل کردن آلارم
         AlarmHelper.cancelTaskAlarm(this, taskId)
 
@@ -87,21 +92,23 @@ class RingingActivity : ComponentActivity() {
         notificationManager.cancel(taskId)
 
         // 3. آزاد کردن WakeLock
-        wakeLock?.let {
-            if (it.isHeld) it.release()
-        }
+        releaseWakeLock()
 
         // 4. بستن صفحه آلارم
         finish()
     }
 
     private fun snoozeAlarm() {
+        android.util.Log.d("RingingActivity", "دکمه اسنوز زده شد - Task ID: $taskId")
+
         // 1. کنسل کردن آلارم فعلی
         AlarmHelper.cancelTaskAlarm(this, taskId)
 
         // 2. تنظیم آلارم جدید برای 5 دقیقه بعد
         val calendar = Calendar.getInstance()
-        calendar.add(Calendar.MINUTE, 5) // 5 دقیقه اسنوز
+        calendar.add(Calendar.MINUTE, 1)
+
+        android.util.Log.d("RingingActivity", "اسنوز - زمان جدید: ${calendar.time}")
 
         // 3. تنظیم آلارم جدید
         val success = AlarmHelper.scheduleTaskAlarm(
@@ -115,28 +122,41 @@ class RingingActivity : ComponentActivity() {
         val notificationManager = getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
         notificationManager.cancel(taskId)
 
-        // 5. اگر اسنوز موفق بود، یک نوتیفیکیشن کوچیک نشون بده
+        // 5. نمایش پیام به کاربر
         if (success) {
-            android.widget.Toast.makeText(
+            Toast.makeText(
                 this,
                 "⏰ آلارم 5 دقیقه دیگر دوباره زنگ می‌زند",
-                android.widget.Toast.LENGTH_SHORT
+                Toast.LENGTH_SHORT
             ).show()
+            android.util.Log.d("RingingActivity", "اسنوز با موفقیت تنظیم شد")
+        } else {
+            Toast.makeText(
+                this,
+                "❌ خطا در تنظیم اسنوز",
+                Toast.LENGTH_SHORT
+            ).show()
+            android.util.Log.e("RingingActivity", "خطا در تنظیم اسنوز")
         }
 
         // 6. آزاد کردن WakeLock
-        wakeLock?.let {
-            if (it.isHeld) it.release()
-        }
+        releaseWakeLock()
 
         // 7. بستن صفحه آلارم
         finish()
     }
 
+    private fun releaseWakeLock() {
+        wakeLock?.let {
+            if (it.isHeld) {
+                it.release()
+                android.util.Log.d("RingingActivity", "WakeLock آزاد شد")
+            }
+        }
+    }
+
     override fun onDestroy() {
         super.onDestroy()
-        wakeLock?.let {
-            if (it.isHeld) it.release()
-        }
+        releaseWakeLock()
     }
 }
