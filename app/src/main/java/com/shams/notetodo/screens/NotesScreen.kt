@@ -19,7 +19,7 @@ import androidx.compose.ui.platform.LocalLayoutDirection
 import androidx.navigation.NavHostController
 import com.shams.notetodo.components.NoteItem
 import com.shams.notetodo.ui.navigation.Routes
-import com.shams.notetodo.vieewmodel.NoteViewModel
+import com.shams.notetodo.viewmodel.NoteViewModel
 
 @SuppressLint("StateFlowValueCalledInComposition")
 @OptIn(ExperimentalMaterial3Api::class, ExperimentalFoundationApi::class)

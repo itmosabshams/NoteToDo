@@ -16,8 +16,8 @@ import com.shams.notetodo.screens.DoneTasksScreen
 import com.shams.notetodo.screens.NotesScreen
 import com.shams.notetodo.screens.TaskListScreen
 import com.shams.notetodo.util.CalendarHeader
-import com.shams.notetodo.vieewmodel.NoteViewModel
-import com.shams.notetodo.vieewmodel.TaskViewModel
+import com.shams.notetodo.viewmodel.NoteViewModel
+import com.shams.notetodo.viewmodel.TaskViewModel
 
 object BottomNavRoutes {
     const val TASKS = "tasks"

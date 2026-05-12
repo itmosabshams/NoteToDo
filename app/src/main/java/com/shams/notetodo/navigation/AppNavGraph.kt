@@ -10,8 +10,8 @@ import androidx.navigation.compose.composable
 import androidx.navigation.navArgument
 import com.shams.notetodo.screens.*
 import com.shams.notetodo.ui.screens.MainScreen
-import com.shams.notetodo.vieewmodel.NoteViewModel
-import com.shams.notetodo.vieewmodel.TaskViewModel
+import com.shams.notetodo.viewmodel.NoteViewModel
+import com.shams.notetodo.viewmodel.TaskViewModel
 
 object Routes {
     const val MAIN = "main"

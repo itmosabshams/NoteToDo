@@ -1,4 +1,4 @@
-package com.shams.notetodo.vieewmodel
+package com.shams.notetodo.viewmodel
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope

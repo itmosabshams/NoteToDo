@@ -6,9 +6,8 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import androidx.navigation.NavController
-import com.shams.notetodo.model.Task
 import com.shams.notetodo.model.TaskCategory
-import com.shams.notetodo.vieewmodel.TaskViewModel
+import com.shams.notetodo.viewmodel.TaskViewModel
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable

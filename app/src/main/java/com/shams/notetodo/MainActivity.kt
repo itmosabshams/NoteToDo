@@ -19,10 +19,10 @@ import com.shams.notetodo.db.TaskDatabase
 import com.shams.notetodo.db.TaskRepository
 import com.shams.notetodo.ui.navigation.AppNavGraph
 import com.shams.notetodo.ui.theme.NoteToDoTheme
-import com.shams.notetodo.vieewmodel.NoteViewModel
-import com.shams.notetodo.vieewmodel.TaskViewModel
-import com.shams.notetodo.vieewmodel.TaskViewModelFactory
-import com.shams.notetodo.vieewmodel.NoteViewModelFactory
+import com.shams.notetodo.viewmodel.NoteViewModel
+import com.shams.notetodo.viewmodel.TaskViewModel
+import com.shams.notetodo.viewmodel.TaskViewModelFactory
+import com.shams.notetodo.viewmodel.NoteViewModelFactory
 
 class MainActivity : ComponentActivity() {
     @RequiresApi(Build.VERSION_CODES.O)

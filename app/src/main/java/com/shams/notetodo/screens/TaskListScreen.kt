@@ -36,7 +36,7 @@ import com.shams.notetodo.model.TaskCategory
 import com.shams.notetodo.util.CategoryFilterSection
 import com.shams.notetodo.ui.components.TaskItem
 import com.shams.notetodo.ui.navigation.Routes.editTaskRoute
-import com.shams.notetodo.vieewmodel.TaskViewModel
+import com.shams.notetodo.viewmodel.TaskViewModel
 import kotlinx.coroutines.launch
 
 @RequiresApi(Build.VERSION_CODES.O)

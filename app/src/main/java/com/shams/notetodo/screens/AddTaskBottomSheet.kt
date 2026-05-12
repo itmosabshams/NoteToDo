@@ -24,7 +24,8 @@ import com.shams.notetodo.model.Task
 import com.shams.notetodo.model.TaskCategory
 import com.shams.notetodo.ui.components.ShamsiCalendarScreen
 import com.shams.notetodo.ui.components.ShamsiDate
-import com.shams.notetodo.vieewmodel.TaskViewModel
+import com.shams.notetodo.utils.PermissionHelper
+import com.shams.notetodo.viewmodel.TaskViewModel
 import java.util.Calendar
 import ir.huri.jcal.JalaliCalendar
 import java.util.Date
@@ -74,6 +75,10 @@ fun AddTaskBottomSheetContent(
     var selectedDate by remember { mutableStateOf<ShamsiDate?>(null) }
     var selectedTime by remember { mutableStateOf(Calendar.getInstance()) }
 
+    // حالت نمایش خطا
+    var showPermissionError by remember { mutableStateOf(false) }
+    var errorMessage by remember { mutableStateOf("") }
+
     val formattedTime by remember(selectedTime) {
         derivedStateOf {
             val hour = selectedTime.get(Calendar.HOUR_OF_DAY).toString().padStart(2, '0')
@@ -96,10 +101,14 @@ fun AddTaskBottomSheetContent(
 
         OutlinedTextField(
             value = title,
-            onValueChange = { title = it },
+            onValueChange = {
+                title = it
+                showPermissionError = false
+            },
             label = { Text("عنوان تسک", textAlign = TextAlign.Right, modifier = Modifier.fillMaxWidth()) },
             modifier = Modifier.fillMaxWidth(),
-            singleLine = true
+            singleLine = true,
+            isError = showPermissionError
         )
 
         Text(
@@ -141,7 +150,10 @@ fun AddTaskBottomSheetContent(
         )
 
         Box(modifier = Modifier.heightIn(max = 280.dp)) {
-            ShamsiCalendarScreen { date -> selectedDate = date }
+            ShamsiCalendarScreen { date ->
+                selectedDate = date
+                showPermissionError = false
+            }
         }
 
         OutlinedButton(
@@ -151,43 +163,94 @@ fun AddTaskBottomSheetContent(
             Text("⏰ ساعت انتخاب شده: $formattedTime")
         }
 
+        // نمایش خطا در صورت وجود
+        if (showPermissionError && errorMessage.isNotEmpty()) {
+            Text(
+                text = errorMessage,
+                color = Color.Red,
+                style = MaterialTheme.typography.bodySmall,
+                textAlign = TextAlign.Center,
+                modifier = Modifier.fillMaxWidth()
+            )
+        }
+
         Spacer(modifier = Modifier.height(6.dp))
 
         Button(
             onClick = {
                 if (title.isNotBlank() && selectedDate != null) {
+
+                    // ====== مرحله 1: چک کردن مجوز اعلان ======
+                    if (!PermissionHelper.hasNotificationPermission(context)) {
+                        errorMessage = "❗ لطفاً ابتدا مجوز اعلان (Notification) را بدهید"
+                        showPermissionError = true
+                        // درخواست مجوز
+                        if (context is androidx.activity.ComponentActivity) {
+                            PermissionHelper.requestNotificationPermission(context)
+                        }
+                        return@Button
+                    }
+
+                    // ====== مرحله 2: چک کردن مجوز Exact Alarm برای اندروید 12+ ======
+                    if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
+                        if (!PermissionHelper.hasExactAlarmPermission(context)) {
+                            errorMessage = "⏰ لطفاً مجوز تنظیم آلارم دقیق را بدهید"
+                            showPermissionError = true
+                            if (context is androidx.activity.ComponentActivity) {
+                                PermissionHelper.requestExactAlarmPermission(context)
+                            }
+                            return@Button
+                        }
+                    }
+
+                    // ====== مرحله 3: ساخت تاریخ و زمان ======
                     val dateTimeString = "${selectedDate.toString()} $formattedTime"
 
-            // تبدیل تاریخ شمسی به میلادی و ساخت Calendar برای آلارم
-            val gregorianDate = JalaliCalendar(
-                selectedDate!!.year,
-                selectedDate!!.month,
-                selectedDate!!.day
-            ).toGregorian()
+                    // تبدیل تاریخ شمسی به میلادی
+                    val gregorianDate = JalaliCalendar(
+                        selectedDate!!.year,
+                        selectedDate!!.month,
+                        selectedDate!!.day
+                    ).toGregorian()
 
                     val alarmCal = Calendar.getInstance().apply {
                         time = Date.from(gregorianDate.toInstant())
-
                         set(Calendar.HOUR_OF_DAY, selectedTime.get(Calendar.HOUR_OF_DAY))
                         set(Calendar.MINUTE, selectedTime.get(Calendar.MINUTE))
-
                         set(Calendar.SECOND, 0)
                         set(Calendar.MILLISECOND, 0)
                     }
 
-            viewModel.addTask(
-                    context = context,
-                    task = Task(
+                    // ====== مرحله 4: چک کردن اینکه زمان آلارم از الان گذشته نباشد ======
+                    if (alarmCal.timeInMillis <= System.currentTimeMillis()) {
+                        errorMessage = "⚠️ زمان انتخابی باید از زمان فعلی جلوتر باشد"
+                        showPermissionError = true
+                        return@Button
+                    }
+
+                    // ====== مرحله 5: ذخیره Task و تنظیم آلارم ======
+                    val task = Task(
                         title = title,
                         category = category,
                         description = "",
                         isDone = false,
                         dateTime = dateTimeString
-                    ),
-                    alarmCalendar = alarmCal
-                )
-                onDismiss()
+                    )
 
+                    viewModel.addTask(
+                        context = context,
+                        task = task,
+                        alarmCalendar = alarmCal
+                    )
+                    onDismiss()
+                } else {
+                    if (title.isBlank()) {
+                        errorMessage = "❗ لطفاً عنوان تسک را وارد کنید"
+                        showPermissionError = true
+                    } else if (selectedDate == null) {
+                        errorMessage = "📅 لطفاً تاریخ را از تقویم انتخاب کنید"
+                        showPermissionError = true
+                    }
                 }
             },
             modifier = Modifier.fillMaxWidth(),
@@ -221,8 +284,3 @@ fun TaskCategory.toPersianName(): String = when (this) {
     TaskCategory.MEETING -> "جلسه"
     TaskCategory.SPORT -> "ورزش"
 }
-
-
-
-
-

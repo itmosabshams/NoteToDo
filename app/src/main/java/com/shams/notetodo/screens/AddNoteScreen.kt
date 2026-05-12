@@ -7,7 +7,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import androidx.navigation.NavController
 import com.shams.notetodo.model.Note
-import com.shams.notetodo.vieewmodel.NoteViewModel
+import com.shams.notetodo.viewmodel.NoteViewModel
 import java.util.*
 
 @OptIn(ExperimentalMaterial3Api::class)

@@ -19,7 +19,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.dp
 import androidx.navigation.NavHostController
 import com.shams.notetodo.ui.components.TaskItem
-import com.shams.notetodo.vieewmodel.TaskViewModel
+import com.shams.notetodo.viewmodel.TaskViewModel
 import kotlinx.coroutines.launch
 
 @OptIn(ExperimentalMaterialApi::class)
