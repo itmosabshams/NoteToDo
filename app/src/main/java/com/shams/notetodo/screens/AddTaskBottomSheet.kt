@@ -1,29 +1,32 @@
 package com.shams.notetodo.screens
 
-import android.app.TimePickerDialog
 import android.content.Context
 import android.os.Build
 import androidx.annotation.RequiresApi
+import androidx.compose.foundation.background
 import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.*
 import androidx.compose.material3.*
-import androidx.compose.material3.FilterChip
-import androidx.compose.material3.FilterChipDefaults
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalLayoutDirection
-import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.LayoutDirection
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import com.shams.notetodo.model.Task
 import com.shams.notetodo.model.TaskCategory
-import com.shams.notetodo.ui.components.ShamsiCalendarScreen
+import com.shams.notetodo.shamsicalendar.ShamsiCalendarScreen
 import com.shams.notetodo.ui.components.ShamsiDate
+import com.shams.notetodo.utils.CustomTimePicker
 import com.shams.notetodo.utils.PermissionHelper
 import com.shams.notetodo.viewmodel.TaskViewModel
 import java.util.Calendar
@@ -42,19 +45,24 @@ fun AddTaskBottomSheet(
     ModalBottomSheet(
         onDismissRequest = onDismiss,
         sheetState = sheetState,
-        modifier = Modifier
-            .fillMaxWidth()
-            .heightIn(max = 750.dp),
-        shape = RoundedCornerShape(topStart = 16.dp, topEnd = 16.dp)
+        shape = RoundedCornerShape(topStart = 24.dp, topEnd = 24.dp),
+        containerColor = Color.White,
+        dragHandle = {
+            Box(
+                modifier = Modifier
+                    .padding(12.dp)
+                    .width(40.dp)
+                    .height(4.dp)
+                    .clip(RoundedCornerShape(2.dp))
+                    .background(Color(0xFFE0E0E0))
+            )
+        },
+        modifier = Modifier.fillMaxHeight()
     ) {
         CompositionLocalProvider(LocalLayoutDirection provides LayoutDirection.Rtl) {
             AddTaskBottomSheetContent(
                 viewModel = viewModel,
-                onDismiss = onDismiss,
-                modifier = Modifier
-                    .imePadding()
-                    .fillMaxWidth()
-                    .padding(12.dp)
+                onDismiss = onDismiss
             )
         }
     }
@@ -65,8 +73,7 @@ fun AddTaskBottomSheet(
 @Composable
 fun AddTaskBottomSheetContent(
     viewModel: TaskViewModel,
-    onDismiss: () -> Unit,
-    modifier: Modifier = Modifier
+    onDismiss: () -> Unit
 ) {
     val context = LocalContext.current
 
@@ -74,10 +81,9 @@ fun AddTaskBottomSheetContent(
     var category by remember { mutableStateOf(TaskCategory.PERSONAL) }
     var selectedDate by remember { mutableStateOf<ShamsiDate?>(null) }
     var selectedTime by remember { mutableStateOf(Calendar.getInstance()) }
-
-    // حالت نمایش خطا
-    var showPermissionError by remember { mutableStateOf(false) }
+    var showError by remember { mutableStateOf(false) }
     var errorMessage by remember { mutableStateOf("") }
+    var showCustomTimePicker by remember { mutableStateOf(false) }
 
     val formattedTime by remember(selectedTime) {
         derivedStateOf {
@@ -88,129 +94,308 @@ fun AddTaskBottomSheetContent(
     }
 
     Column(
-        modifier = modifier,
-        verticalArrangement = Arrangement.spacedBy(12.dp),
-        horizontalAlignment = Alignment.End
+        modifier = Modifier
+            .fillMaxSize()
+            .background(Color.White)
+            .padding(16.dp)
     ) {
-        Text(
-            text = "افزودن تسک جدید",
-            style = MaterialTheme.typography.titleLarge,
-            textAlign = TextAlign.Right,
-            modifier = Modifier.fillMaxWidth()
-        )
+        // ==================== هدر ====================
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.SpaceBetween,
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Column {
+                Text(
+                    text = "ایجاد تسک جدید",
+                    fontSize = 22.sp,
+                    fontWeight = FontWeight.Bold,
+                    color = Color(0xFF2196F3)
+                )
+                Text(
+                    text = "اطلاعات تسک را وارد کنید",
+                    fontSize = 13.sp,
+                    color = Color(0xFF757575)
+                )
+            }
+            IconButton(
+                onClick = onDismiss,
+                modifier = Modifier
+                    .clip(RoundedCornerShape(12.dp))
+                    .background(Color(0xFFF5F5F5))
+            ) {
+                Icon(Icons.Default.Close, contentDescription = "بستن", tint = Color(0xFF757575))
+            }
+        }
 
+        Spacer(modifier = Modifier.height(16.dp))
+
+        // ==================== فیلد عنوان ====================
         OutlinedTextField(
             value = title,
-            onValueChange = {
-                title = it
-                showPermissionError = false
-            },
-            label = { Text("عنوان تسک", textAlign = TextAlign.Right, modifier = Modifier.fillMaxWidth()) },
+            onValueChange = { title = it; showError = false },
+            label = { Text("عنوان تسک") },
+            placeholder = { Text("مثال: خرید شیر") },
             modifier = Modifier.fillMaxWidth(),
             singleLine = true,
-            isError = showPermissionError
+            shape = RoundedCornerShape(12.dp),
+            isError = showError && title.isBlank(),
+            colors = OutlinedTextFieldDefaults.colors(
+                focusedBorderColor = Color(0xFF2196F3),
+                unfocusedBorderColor = Color(0xFFBDBDBD),
+                focusedLabelColor = Color(0xFF2196F3)
+            )
         )
 
+        Spacer(modifier = Modifier.height(12.dp))
+
+        // ==================== دسته‌بندی ====================
         Text(
-            text = "دسته‌بندی:",
-            style = MaterialTheme.typography.bodyMedium,
-            textAlign = TextAlign.Right,
-            modifier = Modifier.fillMaxWidth()
+            text = "دسته‌بندی",
+            fontSize = 14.sp,
+            fontWeight = FontWeight.Medium,
+            color = Color(0xFF424242)
         )
+
+        Spacer(modifier = Modifier.height(6.dp))
 
         Row(
             modifier = Modifier
                 .fillMaxWidth()
                 .horizontalScroll(rememberScrollState()),
-            horizontalArrangement = Arrangement.spacedBy(6.dp)
+            horizontalArrangement = Arrangement.spacedBy(8.dp)
         ) {
-            TaskCategory.values().forEach { item ->
-                val isSelected = category == item
+            TaskCategory.values().forEach { cat ->
+                val isSelected = category == cat
                 FilterChip(
                     selected = isSelected,
-                    onClick = { category = item },
-                    label = { Text(text = item.toPersianName(), color = if (isSelected) Color.White else Color(0xFF2196F3)) },
-                    shape = RoundedCornerShape(50),
+                    onClick = { category = cat },
+                    label = {
+                        Text(
+                            text = cat.toPersianName(),
+                            fontSize = 13.sp,
+                            color = if (isSelected) Color.White else Color(0xFF1976D2)
+                        )
+                    },
+                    shape = RoundedCornerShape(24.dp),
                     colors = FilterChipDefaults.filterChipColors(
                         selectedContainerColor = Color(0xFF2196F3),
                         containerColor = Color(0xFFE3F2FD),
                         selectedLabelColor = Color.White,
-                        labelColor = Color(0xFF2196F3)
-                    ),
-                    modifier = Modifier.height(36.dp)
+                        labelColor = Color(0xFF1976D2)
+                    )
                 )
             }
         }
 
-        Text(
-            text = "تاریخ مورد نظر را از تقویم انتخاب کنید:",
-            style = MaterialTheme.typography.bodyMedium,
-            textAlign = TextAlign.Right,
-            modifier = Modifier.fillMaxWidth()
-        )
+        Spacer(modifier = Modifier.height(12.dp))
 
-        Box(modifier = Modifier.heightIn(max = 280.dp)) {
-            ShamsiCalendarScreen { date ->
-                selectedDate = date
-                showPermissionError = false
+        // ==================== تقویم ====================
+        Card(
+            modifier = Modifier
+                .fillMaxWidth()
+                .weight(1f),
+            shape = RoundedCornerShape(20.dp),
+            colors = CardDefaults.cardColors(containerColor = Color.White),
+            elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
+        ) {
+            Column(modifier = Modifier.fillMaxSize()) {
+                Text(
+                    text = "انتخاب تاریخ",
+                    fontSize = 14.sp,
+                    fontWeight = FontWeight.Medium,
+                    color = Color(0xFF424242),
+                    modifier = Modifier.padding(start = 12.dp, top = 8.dp, bottom = 4.dp)
+                )
+                ShamsiCalendarScreen(
+                    onDateSelected = { date ->
+                        selectedDate = date
+                        showError = false
+                    }
+                )
             }
         }
 
-        OutlinedButton(
-            onClick = { showTimePicker(context) { selectedTime = it } },
-            modifier = Modifier.fillMaxWidth()
+        Spacer(modifier = Modifier.height(12.dp))
+
+        // ==================== انتخاب ساعت ====================
+        Card(
+            modifier = Modifier.fillMaxWidth(),
+            shape = RoundedCornerShape(16.dp),
+            colors = CardDefaults.cardColors(containerColor = Color(0xFFF8F9FA)),
+            elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
         ) {
-            Text("⏰ ساعت انتخاب شده: $formattedTime")
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(horizontal = 16.dp, vertical = 12.dp),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    Icon(
+                        Icons.Default.Schedule,
+                        tint = Color(0xFF2196F3),
+                        contentDescription = null,
+                        modifier = Modifier.size(22.dp)
+                    )
+                    Spacer(modifier = Modifier.width(10.dp))
+                    Text(
+                        text = "ساعت یادآوری",
+                        fontSize = 14.sp,
+                        fontWeight = FontWeight.Medium,
+                        color = Color(0xFF424242)
+                    )
+                }
+
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    Surface(
+                        modifier = Modifier
+                            .clip(RoundedCornerShape(30.dp)),
+                        color = Color(0xFFE3F2FD)
+                    ) {
+                        Text(
+                            text = formattedTime,
+                            fontSize = 16.sp,
+                            fontWeight = FontWeight.Bold,
+                            color = Color(0xFF2196F3),
+                            modifier = Modifier.padding(horizontal = 12.dp, vertical = 6.dp)
+                        )
+                    }
+                    Spacer(modifier = Modifier.width(8.dp))
+                    IconButton(
+                        onClick = { showCustomTimePicker = true },
+                        modifier = Modifier
+                            .size(36.dp)
+                            .clip(RoundedCornerShape(10.dp))
+                            .background(Color(0xFFE3F2FD))
+                    ) {
+                        Icon(
+                            Icons.Default.Edit,
+                            contentDescription = "ویرایش",
+                            tint = Color(0xFF2196F3),
+                            modifier = Modifier.size(18.dp)
+                        )
+                    }
+                }
+            }
         }
 
-        // نمایش خطا در صورت وجود
-        if (showPermissionError && errorMessage.isNotEmpty()) {
-            Text(
-                text = errorMessage,
-                color = Color.Red,
-                style = MaterialTheme.typography.bodySmall,
-                textAlign = TextAlign.Center,
-                modifier = Modifier.fillMaxWidth()
-            )
+        Spacer(modifier = Modifier.height(8.dp))
+
+        // ==================== نمایش تاریخ انتخاب شده ====================
+        if (selectedDate != null) {
+            Card(
+                modifier = Modifier.fillMaxWidth(),
+                shape = RoundedCornerShape(12.dp),
+                colors = CardDefaults.cardColors(containerColor = Color(0xFFE3F2FD))
+            ) {
+                Row(
+                    modifier = Modifier.padding(12.dp),
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(10.dp)
+                ) {
+                    Icon(
+                        Icons.Default.CheckCircle,
+                        tint = Color(0xFF2196F3),
+                        contentDescription = null,
+                        modifier = Modifier.size(20.dp)
+                    )
+                    Text(
+                        text = "${selectedDate!!.year}/${selectedDate!!.month}/${selectedDate!!.day} - $formattedTime",
+                        color = Color(0xFF1976D2),
+                        fontSize = 13.sp,
+                        fontWeight = FontWeight.Medium
+                    )
+                }
+            }
+        } else {
+            Card(
+                modifier = Modifier.fillMaxWidth(),
+                shape = RoundedCornerShape(12.dp),
+                colors = CardDefaults.cardColors(containerColor = Color(0xFFFFF3E0))
+            ) {
+                Row(
+                    modifier = Modifier.padding(12.dp),
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(10.dp)
+                ) {
+                    Icon(
+                        Icons.Default.Info,
+                        tint = Color(0xFFFF9800),
+                        contentDescription = null,
+                        modifier = Modifier.size(20.dp)
+                    )
+                    Text(
+                        text = "تاریخی انتخاب نشده است",
+                        color = Color(0xFFE65100),
+                        fontSize = 13.sp,
+                        fontWeight = FontWeight.Medium
+                    )
+                }
+            }
         }
 
-        Spacer(modifier = Modifier.height(6.dp))
+        // ==================== نمایش خطا ====================
+        if (showError && errorMessage.isNotEmpty()) {
+            Spacer(modifier = Modifier.height(8.dp))
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .background(Color(0xFFFFEBEE), RoundedCornerShape(8.dp))
+                    .padding(10.dp),
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Icon(Icons.Default.Warning, tint = Color(0xFFD32F2F), contentDescription = null, modifier = Modifier.size(16.dp))
+                Spacer(modifier = Modifier.width(6.dp))
+                Text(errorMessage, color = Color(0xFFD32F2F), fontSize = 12.sp)
+            }
+        }
 
+        Spacer(modifier = Modifier.height(16.dp))
+
+        // ==================== دکمه ذخیره ====================
         Button(
             onClick = {
-                if (title.isNotBlank() && selectedDate != null) {
+                if (title.isBlank()) {
+                    errorMessage = "لطفاً عنوان تسک را وارد کنید"
+                    showError = true
+                    return@Button
+                }
 
-                    // ====== مرحله 1: چک کردن مجوز اعلان ======
-                    if (!PermissionHelper.hasNotificationPermission(context)) {
-                        errorMessage = "❗ لطفاً ابتدا مجوز اعلان (Notification) را بدهید"
-                        showPermissionError = true
-                        // درخواست مجوز
+                if (selectedDate == null) {
+                    errorMessage = "لطفاً تاریخ را از تقویم انتخاب کنید"
+                    showError = true
+                    return@Button
+                }
+
+                if (!PermissionHelper.hasNotificationPermission(context)) {
+                    errorMessage = "لطفاً مجوز اعلان را بدهید"
+                    showError = true
+                    if (context is androidx.activity.ComponentActivity) {
+                        PermissionHelper.requestNotificationPermission(context)
+                    }
+                    return@Button
+                }
+
+                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
+                    if (!PermissionHelper.hasExactAlarmPermission(context)) {
+                        errorMessage = "لطفاً مجوز تنظیم آلارم را بدهید"
+                        showError = true
                         if (context is androidx.activity.ComponentActivity) {
-                            PermissionHelper.requestNotificationPermission(context)
+                            PermissionHelper.requestExactAlarmPermission(context)
                         }
                         return@Button
                     }
+                }
 
-                    // ====== مرحله 2: چک کردن مجوز Exact Alarm برای اندروید 12+ ======
-                    if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
-                        if (!PermissionHelper.hasExactAlarmPermission(context)) {
-                            errorMessage = "⏰ لطفاً مجوز تنظیم آلارم دقیق را بدهید"
-                            showPermissionError = true
-                            if (context is androidx.activity.ComponentActivity) {
-                                PermissionHelper.requestExactAlarmPermission(context)
-                            }
-                            return@Button
-                        }
-                    }
+                selectedDate?.let { date ->
+                    val dateTimeString = "${date.year}/${date.month}/${date.day} $formattedTime"
 
-                    // ====== مرحله 3: ساخت تاریخ و زمان ======
-                    val dateTimeString = "${selectedDate.toString()} $formattedTime"
-
-                    // تبدیل تاریخ شمسی به میلادی
                     val gregorianDate = JalaliCalendar(
-                        selectedDate!!.year,
-                        selectedDate!!.month,
-                        selectedDate!!.day
+                        date.year,
+                        date.month,
+                        date.day
                     ).toGregorian()
 
                     val alarmCal = Calendar.getInstance().apply {
@@ -221,14 +406,12 @@ fun AddTaskBottomSheetContent(
                         set(Calendar.MILLISECOND, 0)
                     }
 
-                    // ====== مرحله 4: چک کردن اینکه زمان آلارم از الان گذشته نباشد ======
                     if (alarmCal.timeInMillis <= System.currentTimeMillis()) {
-                        errorMessage = "⚠️ زمان انتخابی باید از زمان فعلی جلوتر باشد"
-                        showPermissionError = true
+                        errorMessage = "زمان انتخابی باید از زمان فعلی جلوتر باشد"
+                        showError = true
                         return@Button
                     }
 
-                    // ====== مرحله 5: ذخیره Task و تنظیم آلارم ======
                     val task = Task(
                         title = title,
                         category = category,
@@ -237,43 +420,41 @@ fun AddTaskBottomSheetContent(
                         dateTime = dateTimeString
                     )
 
-                    viewModel.addTask(
-                        context = context,
-                        task = task,
-                        alarmCalendar = alarmCal
-                    )
+                    viewModel.addTask(context, task, alarmCal)
                     onDismiss()
-                } else {
-                    if (title.isBlank()) {
-                        errorMessage = "❗ لطفاً عنوان تسک را وارد کنید"
-                        showPermissionError = true
-                    } else if (selectedDate == null) {
-                        errorMessage = "📅 لطفاً تاریخ را از تقویم انتخاب کنید"
-                        showPermissionError = true
-                    }
                 }
             },
-            modifier = Modifier.fillMaxWidth(),
-            enabled = title.isNotBlank() && selectedDate != null
+            modifier = Modifier
+                .fillMaxWidth()
+                .height(50.dp),
+            shape = RoundedCornerShape(14.dp),
+            colors = ButtonDefaults.buttonColors(
+                containerColor = Color(0xFF2196F3)
+            )
         ) {
-            Text("💾 ذخیره")
+            Icon(Icons.Default.Check, contentDescription = null, modifier = Modifier.size(18.dp))
+            Spacer(modifier = Modifier.width(8.dp))
+            Text("ذخیره تسک", fontSize = 15.sp, fontWeight = FontWeight.SemiBold)
         }
+
+        Spacer(modifier = Modifier.height(8.dp))
+    }
+
+    // ==================== TimePicker سفارشی دایره‌ای ====================
+    if (showCustomTimePicker) {
+        CustomTimePicker(
+            initialHour = selectedTime.get(Calendar.HOUR_OF_DAY),
+            initialMinute = selectedTime.get(Calendar.MINUTE),
+            onTimeSelected = { hour, minute ->
+                selectedTime.set(Calendar.HOUR_OF_DAY, hour)
+                selectedTime.set(Calendar.MINUTE, minute)
+                showCustomTimePicker = false
+            },
+            onDismiss = { showCustomTimePicker = false }
+        )
     }
 }
 
-fun showTimePicker(context: Context, onTimeSelected: (Calendar) -> Unit) {
-    val calendar = Calendar.getInstance()
-    val hour = calendar.get(Calendar.HOUR_OF_DAY)
-    val minute = calendar.get(Calendar.MINUTE)
-
-    TimePickerDialog(context, { _, selectedHour, selectedMinute ->
-        calendar.set(Calendar.HOUR_OF_DAY, selectedHour)
-        calendar.set(Calendar.MINUTE, selectedMinute)
-        onTimeSelected(calendar)
-    }, hour, minute, true).show()
-}
-
-// تابع کمکی برای نام فارسی دسته‌بندی‌ها
 fun TaskCategory.toPersianName(): String = when (this) {
     TaskCategory.ALL -> "همه"
     TaskCategory.PERSONAL -> "شخصی"
