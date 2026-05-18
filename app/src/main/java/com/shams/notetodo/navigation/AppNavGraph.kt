@@ -2,6 +2,8 @@ package com.shams.notetodo.ui.navigation
 
 import android.os.Build
 import androidx.annotation.RequiresApi
+import androidx.compose.animation.*
+import androidx.compose.animation.core.*
 import androidx.compose.runtime.Composable
 import androidx.navigation.NavHostController
 import androidx.navigation.NavType
@@ -18,15 +20,11 @@ object Routes {
     const val ADD_TASK = "add_task"
     const val EDIT_TASK = "edit_task/{taskId}"
     fun editTaskRoute(taskId: Int) = "edit_task/$taskId"
-
-    const val DONE_TASKS = "doneTasks" // ✅ مسیر جدید
-
-    // مسیرهای یادداشت
+    const val DONE_TASKS = "doneTasks"
     const val NOTES = "notes"
     const val ADD_NOTE = "add_note"
     const val EDIT_NOTE = "edit_note/{noteId}"
     fun editNoteRoute(noteId: Int) = "edit_note/$noteId"
-
     const val READ_ONLY_NOTE = "read_only_note/{noteId}"
     fun readOnlyNoteRoute(noteId: Int) = "read_only_note/$noteId"
 }
@@ -64,7 +62,6 @@ fun AppNavGraph(
             }
         }
 
-        // ✅ صفحه تسک‌های انجام‌شده
         composable(Routes.DONE_TASKS) {
             DoneTasksScreen(
                 navController = navController,
@@ -86,9 +83,26 @@ fun AppNavGraph(
             )
         }
 
+        // صفحه جزئیات یادداشت با انیمیشن نرم مثل آیفون
         composable(
             route = Routes.READ_ONLY_NOTE,
-            arguments = listOf(navArgument("noteId") { type = NavType.IntType })
+            arguments = listOf(navArgument("noteId") { type = NavType.IntType }),
+            enterTransition = {
+                fadeIn(
+                    animationSpec = tween(400, easing = LinearEasing)
+                ) + scaleIn(
+                    initialScale = 1f,
+                    animationSpec = tween(400, easing = LinearEasing)
+                )
+            },
+            exitTransition = {
+                fadeOut(
+                    animationSpec = tween(400, easing = LinearEasing)
+                ) + scaleOut(
+                    targetScale = 1f,
+                    animationSpec = tween(400, easing = LinearEasing)
+                )
+            }
         ) { backStackEntry ->
             val noteId = backStackEntry.arguments?.getInt("noteId") ?: -1
             val note = noteViewModel.getNoteById(noteId)

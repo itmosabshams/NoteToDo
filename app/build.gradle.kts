@@ -121,19 +121,8 @@ dependencies {
     implementation("com.airbnb.android:lottie-compose:6.3.0")
     implementation("androidx.compose.material3:material3:1.3.1")
 
-
-//    // TimePicker مدرن (مثل کلاک اپ اندروید)
-//    implementation("com.maxkeppeler.sheets-compose-dialogs:core:1.3.0")
-//    implementation("com.maxkeppeler.sheets-compose-dialogs:time:1.3.0")
-//
-//
-//    // هسته اصلی کتابخانه
-//    implementation("com.maxkeppeler.sheets-compose-dialogs:core:2.3.1")
-//
-//    // ماژول ساعت (برای TimePicker)
-//    implementation("com.maxkeppeler.sheets-compose-dialogs:clock:2.3.1")
-
-    // اگر به ماژول‌های دیگه نیاز داشتید:
-    // implementation("com.maxkeppeler.sheets-compose-dialogs:duration:2.3.1")
+    implementation("com.google.accompanist:accompanist-navigation-animation:0.32.0")
+    implementation("com.google.accompanist:accompanist-navigation-animation:0.35.0-alpha")
+    
 
 }

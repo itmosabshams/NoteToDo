@@ -2,6 +2,7 @@ package com.shams.notetodo.screens
 
 import android.content.Context
 import android.os.Build
+import android.util.Log
 import androidx.annotation.RequiresApi
 import androidx.compose.foundation.background
 import androidx.compose.foundation.horizontalScroll
@@ -24,6 +25,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.shams.notetodo.model.Task
 import com.shams.notetodo.model.TaskCategory
+import com.shams.notetodo.model.toPersianName
 import com.shams.notetodo.shamsicalendar.ShamsiCalendarScreen
 import com.shams.notetodo.ui.components.ShamsiDate
 import com.shams.notetodo.utils.CustomTimePicker
@@ -40,58 +42,22 @@ fun AddTaskBottomSheet(
     viewModel: TaskViewModel,
     onDismiss: () -> Unit
 ) {
-    val sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
-
-    ModalBottomSheet(
-        onDismissRequest = onDismiss,
-        sheetState = sheetState,
-        shape = RoundedCornerShape(topStart = 24.dp, topEnd = 24.dp),
-        containerColor = Color.White,
-        dragHandle = {
-            Box(
-                modifier = Modifier
-                    .padding(12.dp)
-                    .width(40.dp)
-                    .height(4.dp)
-                    .clip(RoundedCornerShape(2.dp))
-                    .background(Color(0xFFE0E0E0))
-            )
-        },
-        modifier = Modifier.fillMaxHeight()
-    ) {
-        CompositionLocalProvider(LocalLayoutDirection provides LayoutDirection.Rtl) {
-            AddTaskBottomSheetContent(
-                viewModel = viewModel,
-                onDismiss = onDismiss
-            )
-        }
-    }
-}
-
-@OptIn(ExperimentalMaterial3Api::class)
-@RequiresApi(Build.VERSION_CODES.O)
-@Composable
-fun AddTaskBottomSheetContent(
-    viewModel: TaskViewModel,
-    onDismiss: () -> Unit
-) {
     val context = LocalContext.current
 
     var title by remember { mutableStateOf("") }
     var category by remember { mutableStateOf(TaskCategory.PERSONAL) }
     var selectedDate by remember { mutableStateOf<ShamsiDate?>(null) }
-    var selectedTime by remember { mutableStateOf(Calendar.getInstance()) }
+
+    // ✅ تغییر این دو خط - استفاده از Int به جای Calendar
+    var selectedHour by remember { mutableStateOf(Calendar.getInstance().get(Calendar.HOUR_OF_DAY)) }
+    var selectedMinute by remember { mutableStateOf(Calendar.getInstance().get(Calendar.MINUTE)) }
+
     var showError by remember { mutableStateOf(false) }
     var errorMessage by remember { mutableStateOf("") }
     var showCustomTimePicker by remember { mutableStateOf(false) }
 
-    val formattedTime by remember(selectedTime) {
-        derivedStateOf {
-            val hour = selectedTime.get(Calendar.HOUR_OF_DAY).toString().padStart(2, '0')
-            val minute = selectedTime.get(Calendar.MINUTE).toString().padStart(2, '0')
-            "$hour:$minute"
-        }
-    }
+    // ✅ formattedTime - ساده و بدون مشکل
+    val formattedTime = "${selectedHour.toString().padStart(2, '0')}:${selectedMinute.toString().padStart(2, '0')}"
 
     Column(
         modifier = Modifier
@@ -398,10 +364,11 @@ fun AddTaskBottomSheetContent(
                         date.day
                     ).toGregorian()
 
+                    // ✅ ساخت alarmCal با استفاده از selectedHour و selectedMinute
                     val alarmCal = Calendar.getInstance().apply {
                         time = Date.from(gregorianDate.toInstant())
-                        set(Calendar.HOUR_OF_DAY, selectedTime.get(Calendar.HOUR_OF_DAY))
-                        set(Calendar.MINUTE, selectedTime.get(Calendar.MINUTE))
+                        set(Calendar.HOUR_OF_DAY, selectedHour)
+                        set(Calendar.MINUTE, selectedMinute)
                         set(Calendar.SECOND, 0)
                         set(Calendar.MILLISECOND, 0)
                     }
@@ -443,25 +410,14 @@ fun AddTaskBottomSheetContent(
     // ==================== TimePicker سفارشی دایره‌ای ====================
     if (showCustomTimePicker) {
         CustomTimePicker(
-            initialHour = selectedTime.get(Calendar.HOUR_OF_DAY),
-            initialMinute = selectedTime.get(Calendar.MINUTE),
+            initialHour = selectedHour,
+            initialMinute = selectedMinute,
             onTimeSelected = { hour, minute ->
-                selectedTime.set(Calendar.HOUR_OF_DAY, hour)
-                selectedTime.set(Calendar.MINUTE, minute)
+                selectedHour = hour
+                selectedMinute = minute
                 showCustomTimePicker = false
             },
             onDismiss = { showCustomTimePicker = false }
         )
     }
-}
-
-fun TaskCategory.toPersianName(): String = when (this) {
-    TaskCategory.ALL -> "همه"
-    TaskCategory.PERSONAL -> "شخصی"
-    TaskCategory.BUY -> "خرید"
-    TaskCategory.DAILY -> "روزانه"
-    TaskCategory.COSTS -> "هزینه‌ها"
-    TaskCategory.INSTALLMENTS -> "اقساط"
-    TaskCategory.MEETING -> "جلسه"
-    TaskCategory.SPORT -> "ورزش"
 }

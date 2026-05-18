@@ -1,6 +1,7 @@
 package com.shams.notetodo.viewmodel
 
 import android.content.Context
+import android.util.Log
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.shams.notetodo.db.TaskRepository
@@ -40,6 +41,10 @@ class TaskViewModel(private val repository: TaskRepository) : ViewModel() {
     }
 
     fun addTask(context: Context, task: Task, alarmCalendar: Calendar) {
+        Log.d("AlarmDebug323", "===================")
+        Log.d("AlarmDebug323", "Saving to DB - dateTimeString: ${task.dateTime}")
+        Log.d("AlarmDebug323", "Saving to DB - alarmCalendar time: ${alarmCalendar.time}")
+        Log.d("AlarmDebug323", "===================")
         viewModelScope.launch {
             // اول Task را در دیتابیس ذخیره کن
             val newId = repository.insertTask(task).toInt()

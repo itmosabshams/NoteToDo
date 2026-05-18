@@ -7,8 +7,10 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.geometry.Size
+import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.Path
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -29,8 +31,11 @@ fun CalendarHeader() {
         }
     }
 
-    val mainColor = Color(0xFF03A9F4)  // آبی روشن
-    val waveColor = Color(0xFF0288D1)  // آبی تیره
+    // رنگ‌های حرفه‌ای‌تر با گرادینت
+    val gradientStart = Color(0xFF03A9F4)
+    val gradientEnd = Color(0xFF0288D1)
+    val waveColor = Color(0xFF0277BD).copy(alpha = 0.8f)
+    val waveColorLight = Color(0xFFB3E5FC).copy(alpha = 0.3f)
 
     Box(
         modifier = Modifier
@@ -41,8 +46,13 @@ fun CalendarHeader() {
             val width = size.width
             val height = size.height
 
-            drawRect(color = mainColor, size = Size(width, height))
+            // گرادینت عمودی برای پس‌زمینه
+            val backgroundGradient = Brush.verticalGradient(
+                colors = listOf(gradientStart, gradientEnd)
+            )
+            drawRect(brush = backgroundGradient, size = Size(width, height))
 
+            // موج اصلی پایین
             val wavePath = Path().apply {
                 moveTo(0f, height * 0.75f)
                 quadraticBezierTo(width / 2, height, width, height * 0.75f)
@@ -51,6 +61,17 @@ fun CalendarHeader() {
                 close()
             }
             drawPath(path = wavePath, color = waveColor)
+
+            // موج دوم کوچک‌تر برای عمق بیشتر
+            val wavePath2 = Path().apply {
+                moveTo(0f, height * 0.85f)
+                quadraticBezierTo(width / 3, height * 0.95f, width / 2, height * 0.85f)
+                quadraticBezierTo(width * 2 / 3, height * 0.75f, width, height * 0.85f)
+                lineTo(width, height)
+                lineTo(0f, height)
+                close()
+            }
+            drawPath(path = wavePath2, color = waveColorLight)
         }
 
         Box(
@@ -58,55 +79,63 @@ fun CalendarHeader() {
                 .fillMaxSize()
                 .padding(horizontal = 20.dp, vertical = 16.dp)
         ) {
-            // روز هفته - بالا سمت راست3
+            // روز هفته - بالا سمت راست (با فونت کمی بزرگتر)
             Text(
                 text = dateInfo.dayOfWeek,
                 color = Color.White,
                 fontSize = 18.sp,
+                fontWeight = FontWeight.Medium,
                 modifier = Modifier.align(Alignment.TopStart),
-                textAlign = TextAlign.Right
+                textAlign = TextAlign.Right,
+                letterSpacing = 0.5.sp
             )
 
-
-            // عدد روز وسط صفحه
+            // عدد روز وسط صفحه (بزرگتر و برجسته‌تر)
             Text(
                 text = dateInfo.dayOfMonth.toPersianNumber(),
                 color = Color.White,
-                fontSize = 60.sp,
+                fontSize = 64.sp,
+                fontWeight = FontWeight.Bold,
                 modifier = Modifier.align(Alignment.Center),
-                textAlign = TextAlign.Center
+                textAlign = TextAlign.Center,
+                letterSpacing = 2.sp
             )
 
-
-            // ماه و سال شمسی - پایین سمت چپ
+            // ماه و سال شمسی - بالا سمت چپ
             Column(
                 modifier = Modifier.align(Alignment.TopEnd),
                 horizontalAlignment = Alignment.End
             ) {
                 Text(
                     text = "${dateInfo.shamsiMonth} ${dateInfo.shamsiYear.toPersianNumber()}",
-                    color = Color.White,
-                    fontSize = 18.sp,
-                    textAlign = TextAlign.Right
+                    color = Color.White.copy(alpha = 0.95f),
+                    fontSize = 17.sp,
+                    fontWeight = FontWeight.Medium,
+                    textAlign = TextAlign.Right,
+                    letterSpacing = 0.3.sp
                 )
-
             }
+
+            // تاریخ میلادی - پایین سمت چپ
             Column(
                 modifier = Modifier.align(Alignment.BottomStart),
                 horizontalAlignment = Alignment.End
             ) {
                 Text(
                     text = dateInfo.miladiFullDate.toPersianNumber(),
-                    color = Color.White,
-                    fontSize = 12.sp,
+                    color = Color.White.copy(alpha = 0.85f),
+                    fontSize = 13.sp,
+                    fontWeight = FontWeight.Normal,
                     textAlign = TextAlign.Right
                 )
             }
+
             // تاریخ قمری - پایین سمت راست
             Text(
                 text = dateInfo.ghamari.toPersianNumber(),
-                color = Color.White,
-                fontSize = 12.sp,
+                color = Color.White.copy(alpha = 0.85f),
+                fontSize = 13.sp,
+                fontWeight = FontWeight.Normal,
                 modifier = Modifier.align(Alignment.BottomEnd),
                 textAlign = TextAlign.Right
             )
@@ -114,7 +143,7 @@ fun CalendarHeader() {
     }
 }
 
-// ===== دیتاکلاس و توابع کمکی =====
+// ===== دیتاکلاس و توابع کمکی (بدون تغییر) =====
 data class DateInfo(
     val dayOfWeek: String,
     val dayOfMonth: String,
@@ -173,7 +202,6 @@ fun getPersianDayOfWeek(calendar: Calendar): String {
     return persianDays[(dayOfWeekIndex + 5) % 7]
 }
 
-// ==== تبدیل اعداد به فارسی ====
 fun String.toPersianNumber(): String {
     val englishDigits = "0123456789"
     val persianDigits = "۰۱۲۳۴۵۶۷۸۹"
@@ -183,6 +211,5 @@ fun String.toPersianNumber(): String {
     }
     return result
 }
-
 
 fun Int.toPersianNumber(): String = this.toString().toPersianNumber()

@@ -186,6 +186,7 @@ fun ShamsiCalendarScreen(
     }
 }
 
+@RequiresApi(Build.VERSION_CODES.O)
 @Composable
 fun CalendarGrid(
     year: Int,
